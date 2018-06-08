@@ -141,6 +141,28 @@ describe Druid::Query do
         @query.postagg { js('{ return a_with_b - a; }').as b }
       }.to raise_error
     end
+
+    it 'build a post aggregation with hyperUniqueCardinality' do
+      post_agg = Druid::PostAggregationOperation.new(
+        Druid::PostAggregationField.new(fieldName: 'a', type: 'hyperUniqueCardinality'),
+        :/,
+        2
+      )
+      post_agg.name = 'a_2'
+      @query.query.postAggregations << post_agg
+
+      expect(JSON.parse(@query.query.to_json)['postAggregations']).to eq(
+        [{
+          'type' => 'arithmetic',
+          'fn' => '/',
+          'fields' => [
+            { 'type' => 'hyperUniqueCardinality', 'fieldName' => 'a' },
+            { 'type' => 'constant', 'value' => 2 }
+          ],
+          'name' => 'a_2'
+        }]
+      )
+    end
   end
 
   it 'builds aggregations on long_sum' do
@@ -232,6 +254,18 @@ describe Druid::Query do
           'aggregator' => { 'type' => 'longSum', 'name' => 'a', 'fieldName' => 'a' }
         }
       ]
+    end
+  end
+
+  describe '#first_last_aggregators' do
+    %w[doubleFirst doubleLast longFirst longLast floatFirst floatLast].each do |type|
+      it "builds aggregations with '#{type}' type" do
+        @query.send(type.underscore, :a, :b)
+        expect(JSON.parse(@query.query.to_json)['aggregations']).to eq [
+          { 'type' => type, 'name' => 'a', 'fieldName' => 'a'},
+          { 'type' => type, 'name' => 'b', 'fieldName' => 'b'}
+        ]
+      end
     end
   end
 
