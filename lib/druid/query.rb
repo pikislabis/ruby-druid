@@ -452,13 +452,13 @@ module Druid
         self
       end
 
-      def filtered_aggregation(metric, aggregation_type, &filter)
+      def filtered_aggregation(metric, name, aggregation_type, &filter)
         @query.aggregations << Aggregation.new(
           type: 'filtered',
           filter: Filter.new.instance_exec(&filter),
           aggregator: Aggregation.new(
             type: aggregation_type.to_s.camelize(:lower),
-            name: metric,
+            name: name,
             fieldName: metric
           )
         ) unless @query.contains_aggregation?(metric)
